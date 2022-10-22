@@ -7,9 +7,10 @@ namespace translatorKurs
     class LeksicheskiyAnalizator
     {
         public static int maxDlinaIdenta = 9;
+        public static string lastOperator = "";
         public static bool varExist = false, beginExist = false, endExist = false,
             readExist = false, ifExist = false, thenExist = false, logicalExist = false,
-            elseExist = false, endIfExist = false, writeExist = false;
+            elseExist = false, endIfExist = false, writeExist = false, correctQueue = false;
 
         public static void Main()
         {
@@ -22,6 +23,7 @@ namespace translatorKurs
                 }
                 else
                 {
+                    Console.Write("Найденные лексемы: ");
                     foreach (var it in choto.Item1)
                     {
                         Console.Write(it + " ");
@@ -66,9 +68,7 @@ namespace translatorKurs
                         lex.Add(lexBuffer);
                         lexBuffer = string.Empty;
                     }
-                    //var operators = new List<string> { ";", ",", "(", ")", "+", "-", "*", "=", ":", "." };
                     var operators = new List<string> { ":", ";", ".", ",", "(", ")", "=", ".NOT.", ".AND.", ".OR.", ".EQU." };
-
                     if (operators.Exists(op => op.Equals(symbol.ToString())))
                     {
                         lex.Add(symbol.ToString());
@@ -99,7 +99,31 @@ namespace translatorKurs
                 {
                     return true;
                 }
+
+                if (!lastOperator.Equals(""))
+                {
+                    return true;
+                }
+                lastOperator = "VAR";
             }
+
+            if (stroka.Equals("LOGICAL"))
+            {
+                if (!logicalExist)
+                {
+                    logicalExist = true;
+                }
+                else
+                {
+                    return true;
+                }
+                if (!lastOperator.Equals("VAR"))
+                {
+                    return true;
+                }
+                lastOperator = "LOGICAL";
+            }
+
             if (stroka.Equals("BEGIN"))
             {
                 if (!beginExist)
@@ -110,7 +134,14 @@ namespace translatorKurs
                 {
                     return true;
                 }
+
+                if (!lastOperator.Equals("LOGICAL"))
+                {
+                    return true;
+                }
+                lastOperator = "BEGIN";
             }
+
             if (stroka.Equals("END"))
             {
                 if (!endExist)
@@ -121,7 +152,14 @@ namespace translatorKurs
                 {
                     return true;
                 }
+
+                if (!lastOperator.Equals("BEGIN"))
+                {
+                    return true;
+                }
+                lastOperator = "END";
             }
+
             if (stroka.Equals("READ"))
             {
                 if (!readExist)
@@ -133,6 +171,7 @@ namespace translatorKurs
                     return true;
                 }
             }
+
             if (stroka.Equals("IF"))
             {
                 if (!ifExist)
@@ -144,6 +183,7 @@ namespace translatorKurs
                     return true;
                 }
             }
+
             if (stroka.Equals("THEN"))
             {
                 if (!thenExist)
@@ -155,6 +195,7 @@ namespace translatorKurs
                     return true;
                 }
             }
+
             if (stroka.Equals("ELSE"))
             {
                 if (!elseExist)
@@ -166,6 +207,7 @@ namespace translatorKurs
                     return true;
                 }
             }
+
             if (stroka.Equals("END_IF"))
             {
                 if (!endIfExist)
@@ -177,22 +219,12 @@ namespace translatorKurs
                     return true;
                 }
             }
+
             if (stroka.Equals("WRITE"))
             {
                 if (!writeExist)
                 {
                     writeExist = true;
-                }
-                else
-                {
-                    return true;
-                }
-            }
-            if (stroka.Equals("LOGICAL"))
-            {
-                if (!logicalExist)
-                {
-                    logicalExist = true;
                 }
                 else
                 {
