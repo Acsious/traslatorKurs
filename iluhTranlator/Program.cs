@@ -111,6 +111,19 @@ namespace translatorKurs
                         case "BEGIN":
 
                             break;
+                        case "END":
+                            if (symbol != ' ' && symbol != '\n' && symbol != '\r' && symbol != '\t' && symbol != '.')
+                            {
+                                return (null, $"'{symbol}' - неверный символ.");
+                            }
+                            if (symbol == '.')
+                            {
+                                if (lex.Last().Equals("."))
+                                {
+                                    return (null, "Слишком много символа - '.'");
+                                }
+                            }
+                            break;
                     }
                     if (symbol != ' ' && symbol != '\n' && symbol != '\r' && symbol != '\t')
                     {
