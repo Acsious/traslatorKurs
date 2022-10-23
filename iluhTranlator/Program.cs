@@ -7,7 +7,8 @@ namespace translatorKurs
 {
     class LeksicheskiyAnalizator
     {
-        private static int maxDlinaIdenta = 9, colichestvoDvoitochiy = 0;
+        private static readonly int maxDlinaIdenta = 9;
+        private static int colichestvoDvoitochiy = 0, colichestvoTochekSZapyatoy = 0;
         private static string lastOperator = "";
         private static bool varExist = false, beginExist = false, endExist = false,
             readExist = false, ifExist = false, thenExist = false, logicalExist = false,
@@ -97,6 +98,14 @@ namespace translatorKurs
                             if (symbol != ' ' && symbol != '\n' && symbol != '\r' && symbol != '\t' && symbol != ';')
                             {
                                 return (null, $"'{symbol}' - неверный символ.");
+                            }
+                            if (symbol == ';')
+                            {
+                                colichestvoTochekSZapyatoy++;
+                                if (colichestvoTochekSZapyatoy > 1)
+                                {
+                                    return (null, "Слишком много символа - ';'");
+                                }
                             }
                             break;
                         case "BEGIN":
