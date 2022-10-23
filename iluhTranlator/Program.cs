@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace translatorKurs
 {
     class LeksicheskiyAnalizator
     {
-        public static int maxDlinaIdenta = 9;
-        public static string lastOperator = "";
-        public static bool varExist = false, beginExist = false, endExist = false,
+        private static int maxDlinaIdenta = 9, colichestvoDvoitochiy = 0;
+        private static string lastOperator = "";
+        private static bool varExist = false, beginExist = false, endExist = false,
             readExist = false, ifExist = false, thenExist = false, logicalExist = false,
-            elseExist = false, endIfExist = false, writeExist = false, correctQueue = false;
+            elseExist = false, endIfExist = false, writeExist = false;
 
         public static void Main()
         {
@@ -68,15 +69,55 @@ namespace translatorKurs
                         lex.Add(lexBuffer);
                         lexBuffer = string.Empty;
                     }
-                    var operators = new List<string> { ":", ";", ".", ",", "(", ")", "=", ".NOT.", ".AND.", ".OR.", ".EQU." };
-                    if (operators.Exists(op => op.Equals(symbol.ToString())))
+
+                    switch (lastOperator)
+                    {
+                        case "VAR":
+                            if (symbol != ' ' && symbol != '\n' && symbol != '\r' && symbol != '\t' && symbol != ',' && symbol != ':')
+                            {
+                                return (null, $"'{symbol}' - неверный символ.");
+                            }
+                            if (symbol == ',')
+                            {
+                                if (lex.Last().Equals(",") || lex.Last().Equals("VAR"))
+                                {
+                                    return (null, "Слишком много символа - ','");
+                                }
+                            }
+                            if (symbol == ':')
+                            {
+                                colichestvoDvoitochiy++;
+                                if (colichestvoDvoitochiy > 1)
+                                {
+                                    return (null, "Слишком много символа - ':'");
+                                }
+                            }
+                            break;
+                        case "LOGICAL":
+                            if (symbol != ' ' && symbol != '\n' && symbol != '\r' && symbol != '\t' && symbol != ';')
+                            {
+                                return (null, $"'{symbol}' - неверный символ.");
+                            }
+                            break;
+                        case "BEGIN":
+
+                            break;
+                    }
+                    if (symbol != ' ' && symbol != '\n' && symbol != '\r' && symbol != '\t')
                     {
                         lex.Add(symbol.ToString());
                     }
-                    else if (symbol != ' ' && symbol != '\n' && symbol != '\r' && symbol != '\t')
-                    {
-                        return (null, $"'{symbol}' - неверный символ.");
-                    }
+                    #region
+                    //var operators = new List<string> { ":", ";", ".", ",", "(", ")", "=", ".NOT.", ".AND.", ".OR.", ".EQU." };
+                    //if (operators.Exists(op => op.Equals(symbol.ToString())))
+                    //{
+                    //    lex.Add(symbol.ToString());
+                    //}
+                    //else if (symbol != ' ' && symbol != '\n' && symbol != '\r' && symbol != '\t')
+                    //{
+                    //    return (null, $"'{symbol}' - неверный символ.");
+                    //}
+                    #endregion
                 }
             }
             return (lex, string.Empty);
