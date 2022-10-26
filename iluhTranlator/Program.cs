@@ -8,7 +8,8 @@ namespace translatorKurs
     class LeksicheskiyAnalizator
     {
         private static readonly int maxDlinaIdenta = 9;
-        private static int colichestvoDvoitochiy = 0, colichestvoTochekSZapyatoy = 0;
+        private static int colDvoit = 0, colTochSZap = 0, colOperBegin = 0, colLexBegin = 0,
+            colOtSkob = 0, colZakSkob = 0;
         private static string lastOperator = "";
         private static bool varExist = false, beginExist = false, endExist = false,
             readExist = false, ifExist = false, thenExist = false, logicalExist = false,
@@ -87,8 +88,8 @@ namespace translatorKurs
                             }
                             if (symbol == ':')
                             {
-                                colichestvoDvoitochiy++;
-                                if (colichestvoDvoitochiy > 1)
+                                colDvoit++;
+                                if (colDvoit > 1)
                                 {
                                     return (null, "Слишком много символа - ':'");
                                 }
@@ -101,15 +102,38 @@ namespace translatorKurs
                             }
                             if (symbol == ';')
                             {
-                                colichestvoTochekSZapyatoy++;
-                                if (colichestvoTochekSZapyatoy > 1)
+                                colTochSZap++;
+                                if (colTochSZap > 1)
                                 {
                                     return (null, "Слишком много символа - ';'");
                                 }
                             }
                             break;
                         case "BEGIN":
+                            var operators = new List<string> { ";", "(", ")", ".NOT.", ".AND.", ".OR.", ".EQU." };
+                            if (operators.Exists(op => op.Equals(symbol.ToString())))
+                            {
+                                if (symbol == '(')
+                                {
+                                    colOtSkob++;
+                                }
+                                if (symbol == ')')
+                                {
+                                    colZakSkob++;
+                                }
+                                if (symbol == ';')
+                                {
+                                    if (lex.Last().Equals(";"))
+                                    {
+                                        return (null, "Слишком много символа - ';'");
+                                    }
+                                }
 
+                            }
+                            else if (symbol != ' ' && symbol != '\n' && symbol != '\r' && symbol != '\t')
+                            {
+                                return (null, $"'{symbol}' - неверный символ.");
+                            }
                             break;
                         case "END":
                             if (symbol != ' ' && symbol != '\n' && symbol != '\r' && symbol != '\t' && symbol != '.')
@@ -130,6 +154,7 @@ namespace translatorKurs
                         lex.Add(symbol.ToString());
                     }
                     #region
+                    //временный кусок для копипасты
                     //var operators = new List<string> { ":", ";", ".", ",", "(", ")", "=", ".NOT.", ".AND.", ".OR.", ".EQU." };
                     //if (operators.Exists(op => op.Equals(symbol.ToString())))
                     //{
@@ -141,6 +166,10 @@ namespace translatorKurs
                     //}
                     #endregion
                 }
+            }
+            if(colOtSkob!=colZakSkob)
+            { 
+                return (null, "Количество открывающих и закрыввающих скобок не равно."); 
             }
             return (lex, string.Empty);
         }
