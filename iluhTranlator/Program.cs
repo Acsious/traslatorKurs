@@ -13,7 +13,7 @@ namespace translatorKurs
         private static string lastOperator = "";
         private static bool varExist = false, beginExist = false, endExist = false,
             readExist = false, ifExist = false, thenExist = false, logicalExist = false,
-            elseExist = false, endIfExist = false, writeExist = false;
+            elseExist = false, endIfExist = false, writeExist = false, tochPosleEnd = false;
 
         public static void Main()
         {
@@ -40,7 +40,7 @@ namespace translatorKurs
             }
         }
 
-        public static (List<string>, string) Analiz(StreamReader potokChteniya)
+        private static (List<string>, string) Analiz(StreamReader potokChteniya)
         {
             var lex = new List<string>();
             var lexBuffer = string.Empty;
@@ -153,10 +153,15 @@ namespace translatorKurs
                             }
                             if (symbol == '.')
                             {
+                                tochPosleEnd = true;
                                 if (lex.Last().Equals("."))
                                 {
                                     return (null, "Слишком много символа - '.'");
                                 }
+                            }
+                            if (!lex.Last().Equals("END"))
+                            {
+                                return (null, $"Ошибка синтаксиса.");
                             }
                             break;
                     }
@@ -182,7 +187,32 @@ namespace translatorKurs
             {
                 return (null, "Количество открывающих и закрыввающих скобок не равно.");
             }
+            if (!tochPosleEnd)
+            {
+                return (null, "Нету точки после END");
+            }
+            Obiedinenie(lex);
             return (lex, string.Empty);
+        }
+
+        /// <summary>
+        /// Объединяет три найденных лексемы в одну по принципу: . EQU . => .EQU.
+        /// (Работает с EQU, AND, NOT, OR)
+        /// </summary>
+        /// <param name="spis">Список лексем</param>
+        private static void Obiedinenie(List<string> spis)
+        {
+            for (var i = spis.IndexOf("BEGIN"); i < spis.IndexOf("END"); i++)
+            {
+                if (spis[i].Equals(".") && spis[i + 2].Equals(".") && (spis[i + 1].Equals("NOT") || spis[i + 1].Equals("AND") || spis[i + 1].Equals("EQU") || spis[i + 1].Equals("OR")))
+                {
+                    spis[i] = spis[i] + spis[i + 1] + spis[i + 2];
+                    spis[i + 1] = null;
+                    spis[i + 2] = null;
+                    i += 2;
+                }
+            }
+            spis.RemoveAll(x => x == null);
         }
 
         /// <summary>
@@ -190,7 +220,7 @@ namespace translatorKurs
         /// </summary>
         /// <param name="stroka">Анализируемая лексима.</param>
         /// <returns>1 - ошибка, 0 - ошибок нет.</returns>
-        public static bool Proverka(string stroka)
+        private static bool Proverka(string stroka)
         {
             if (stroka.Equals("VAR"))
             {
