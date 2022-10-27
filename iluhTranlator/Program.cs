@@ -8,7 +8,7 @@ namespace translatorKurs
     class LeksicheskiyAnalizator
     {
         private static readonly int maxDlinaIdenta = 9;
-        private static int colDvoit = 0, colTochSZap = 0, colOperBegin = 0, colLexBegin = 0,
+        private static int colDvoit = 0, colTochSZap = 0, colTochBegin = 0,
             colOtSkob = 0, colZakSkob = 0;
         private static string lastOperator = "";
         private static bool varExist = false, beginExist = false, endExist = false,
@@ -110,7 +110,7 @@ namespace translatorKurs
                             }
                             break;
                         case "BEGIN":
-                            var operators = new List<string> { ";", "(", ")", ".NOT.", ".AND.", ".OR.", ".EQU." };
+                            var operators = new List<string> { ";", "=", "(", ")", "." };
                             if (operators.Exists(op => op.Equals(symbol.ToString())))
                             {
                                 if (symbol == '(')
@@ -128,7 +128,18 @@ namespace translatorKurs
                                         return (null, "Слишком много символа - ';'");
                                     }
                                 }
-
+                                if (symbol == '.')
+                                {
+                                    colTochBegin++;
+                                    if (lex.Last().Equals("."))
+                                    {
+                                        return (null, "Слишком много символа - '.'");
+                                    }
+                                    if ((colTochBegin % 2 == 0) && !(lex[lex.Count - 2].Equals(".") && (lex.Last().Equals("NOT") || lex.Last().Equals("AND") || lex.Last().Equals("OR") || lex.Last().Equals("EQU"))))
+                                    {
+                                        return (null, "Ошибка синтаксиса");
+                                    }
+                                }
                             }
                             else if (symbol != ' ' && symbol != '\n' && symbol != '\r' && symbol != '\t')
                             {
@@ -167,9 +178,9 @@ namespace translatorKurs
                     #endregion
                 }
             }
-            if(colOtSkob!=colZakSkob)
-            { 
-                return (null, "Количество открывающих и закрыввающих скобок не равно."); 
+            if (colOtSkob != colZakSkob)
+            {
+                return (null, "Количество открывающих и закрыввающих скобок не равно.");
             }
             return (lex, string.Empty);
         }
