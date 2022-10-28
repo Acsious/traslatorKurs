@@ -115,12 +115,23 @@ namespace translatorKurs
                             {
                                 if (symbol == '(')
                                 {
-
                                     colOtSkob++;
                                 }
                                 if (symbol == ')')
                                 {
                                     colZakSkob++;
+
+                                    if (lex[lex.Count - 2].Equals("("))
+                                    {
+                                        if (lex[lex.Count - 3].Equals("READ") || lex[lex.Count - 3].Equals("WRITE"))
+                                        {
+                                            lex[lex.Count - 3] += lex[lex.Count - 2] + lex[lex.Count - 1] + ")";
+                                            lex[lex.Count - 2] = null;
+                                            lex[lex.Count - 1] = null;
+                                            lex.RemoveAll(x => x == null);
+                                            symbol = ' ';
+                                        }
+                                    }
                                 }
                                 if (symbol == ';')
                                 {
@@ -161,12 +172,16 @@ namespace translatorKurs
                                     return (null, "Слишком много символа - '.'");
                                 }
                             }
-                            if(symbol == '_')
+                            if (symbol == '_')
                             {
                                 if (lex.Last().Equals("END"))
                                 {
                                     lexBuffer = lex.Last() + "_";
                                     break;
+                                }
+                                else
+                                {
+                                    return (null, "Ошибка синтаксиса.");
                                 }
                             }
                             if (lex.Last().Equals("END_IF"))
@@ -189,6 +204,7 @@ namespace translatorKurs
                     }
                     #region
                     //временный кусок для копипасты
+                    //
                     //var operators = new List<string> { ":", ";", ".", ",", "(", ")", "=", ".NOT.", ".AND.", ".OR.", ".EQU." };
                     //if (operators.Exists(op => op.Equals(symbol.ToString())))
                     //{
