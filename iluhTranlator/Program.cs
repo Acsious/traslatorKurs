@@ -115,6 +115,7 @@ namespace translatorKurs
                             {
                                 if (symbol == '(')
                                 {
+
                                     colOtSkob++;
                                 }
                                 if (symbol == ')')
@@ -145,9 +146,10 @@ namespace translatorKurs
                             {
                                 return (null, $"'{symbol}' - неверный символ.");
                             }
+
                             break;
                         case "END":
-                            if (symbol != ' ' && symbol != '\n' && symbol != '\r' && symbol != '\t' && symbol != '.')
+                            if (symbol != ' ' && symbol != '\n' && symbol != '\r' && symbol != '\t' && symbol != '.' && symbol != '_')
                             {
                                 return (null, $"'{symbol}' - неверный символ.");
                             }
@@ -158,6 +160,22 @@ namespace translatorKurs
                                 {
                                     return (null, "Слишком много символа - '.'");
                                 }
+                            }
+                            if(symbol == '_')
+                            {
+                                if (lex.Last().Equals("END"))
+                                {
+                                    lexBuffer = lex.Last() + "_";
+                                    break;
+                                }
+                            }
+                            if (lex.Last().Equals("END_IF"))
+                            {
+                                lastOperator = "BEGIN";
+                                lex[lex.Count - 3] = null;
+                                lex[lex.Count - 2] = null;
+                                lex.RemoveAll(x => x == null);
+                                break;
                             }
                             if (!lex.Last().Equals("END"))
                             {
@@ -212,7 +230,7 @@ namespace translatorKurs
                     i += 2;
                 }
             }
-            spis.RemoveAll(x => x == null);
+            spis.RemoveAll(x => x is null);
         }
 
         /// <summary>
@@ -346,6 +364,7 @@ namespace translatorKurs
                 if (!endIfExist)
                 {
                     endIfExist = true;
+                    endExist = false;
                 }
                 else
                 {
