@@ -9,11 +9,9 @@ namespace translatorKurs
     {
         private static readonly int maxDlinaIdenta = 9;
         private static int colDvoit = 0, colTochSZap = 0, colTochBegin = 0,
-            colOtSkob = 0, colZakSkob = 0;
+            colOtSkob = 0, colZakSkob = 0, ifExist = 0, elseExist = 0, endIfExist = 0, thenExist = 0;
         private static string lastOperator = "";
-        private static bool varExist = false, beginExist = false, endExist = false,
-            readExist = false, ifExist = false, thenExist = false, logicalExist = false,
-            elseExist = false, endIfExist = false, writeExist = false, tochPosleEnd = false;
+        private static bool varExist = false, beginExist = false, endExist = false, logicalExist = false, tochPosleEnd = false;
 
         public static void Main()
         {
@@ -225,6 +223,10 @@ namespace translatorKurs
             {
                 return (null, "Нету точки после END");
             }
+            if (ifExist != endIfExist)
+            {
+                return (null, "Один из блоков IF не закрыт.");
+            }
             Obiedinenie(lex);
             return (lex, string.Empty);
         }
@@ -327,37 +329,15 @@ namespace translatorKurs
                 lastOperator = "END";
             }
 
-            if (stroka.Equals("READ"))
-            {
-                if (!readExist)
-                {
-                    readExist = true;
-                }
-                else
-                {
-                    return true;
-                }
-            }
-
             if (stroka.Equals("IF"))
             {
-                if (!ifExist)
-                {
-                    ifExist = true;
-                }
-                else
-                {
-                    return true;
-                }
+                ifExist++;
             }
 
             if (stroka.Equals("THEN"))
             {
-                if (!thenExist)
-                {
-                    thenExist = true;
-                }
-                else
+                thenExist++;
+                if (thenExist != ifExist)
                 {
                     return true;
                 }
@@ -365,11 +345,8 @@ namespace translatorKurs
 
             if (stroka.Equals("ELSE"))
             {
-                if (!elseExist)
-                {
-                    elseExist = true;
-                }
-                else
+                elseExist++;
+                if (elseExist > ifExist)
                 {
                     return true;
                 }
@@ -377,24 +354,9 @@ namespace translatorKurs
 
             if (stroka.Equals("END_IF"))
             {
-                if (!endIfExist)
-                {
-                    endIfExist = true;
-                    endExist = false;
-                }
-                else
-                {
-                    return true;
-                }
-            }
-
-            if (stroka.Equals("WRITE"))
-            {
-                if (!writeExist)
-                {
-                    writeExist = true;
-                }
-                else
+                endIfExist++;
+                endExist = false;
+                if (endIfExist > ifExist)
                 {
                     return true;
                 }
