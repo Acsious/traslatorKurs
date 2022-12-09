@@ -18,12 +18,16 @@ namespace translatorKurs
             try
             {
                 var choto = Analiz(new StreamReader("TestFile.txt"));
+                if (choto.Item1 != null)
+                    choto = Proverka_Per(choto.Item1);
+
                 if (choto.Item1 == null)
                 {
                     Console.WriteLine(choto.Item2);
                 }
                 else
                 {
+                    Magazine(choto.Item1);
                     Console.Write("Найденные лексемы: ");
                     foreach (var it in choto.Item1)
                     {
@@ -118,18 +122,20 @@ namespace translatorKurs
                                 if (symbol == ')')
                                 {
                                     colZakSkob++;
-
-                                    if (lex[lex.Count - 2].Equals("("))
-                                    {
-                                        if (lex[lex.Count - 3].Equals("READ") || lex[lex.Count - 3].Equals("WRITE"))
-                                        {
-                                            lex[lex.Count - 3] += lex[lex.Count - 2] + lex[lex.Count - 1] + ")";
-                                            lex[lex.Count - 2] = null;
-                                            lex[lex.Count - 1] = null;
-                                            lex.RemoveAll(x => x == null);
-                                            symbol = ' ';
-                                        }
-                                    }
+                                    #region
+                                    //Вроде не надо, но оставлю на всякий
+                                    //if (lex[lex.Count - 2].Equals("("))
+                                    //{
+                                    //    if (lex[lex.Count - 3].Equals("READ") || lex[lex.Count - 3].Equals("WRITE"))
+                                    //    {
+                                    //        lex[lex.Count - 3] += lex[lex.Count - 2] + lex[lex.Count - 1] + ")";
+                                    //        lex[lex.Count - 2] = null;
+                                    //        lex[lex.Count - 1] = null;
+                                    //        lex.RemoveAll(x => x == null);
+                                    //        symbol = ' ';
+                                    //    }
+                                    //}
+                                    #endregion
                                 }
                                 if (symbol == ';')
                                 {
@@ -363,6 +369,74 @@ namespace translatorKurs
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Проверка на неинициализированные переменные
+        /// </summary>
+        /// <param name="spisok">Списко лексем</param>
+        /// <returns></returns>
+        private static (List<string>, string) Proverka_Per(List<string> spisok)
+        {
+            List<string> spPer = new List<string>();
+            List<string> allPer = new List<string>();
+            int index = 0;
+
+            for (int i = 0; i < spisok.Count; i++)
+            {
+                var iter = spisok[i];
+
+                if (iter.Equals(":"))
+                {
+                    index = i + 2;
+                    break;
+                }
+                if (!iter.Equals(iter.ToUpper()))
+                    spPer.Add(iter);
+            }
+
+            for (int i = index; i < spisok.Count; i++)
+            {
+                var iter = spisok[i];
+
+                if (iter.Equals("END"))
+                    break;
+                if (!iter.Equals(iter.ToUpper()))
+                    allPer.Add(iter);
+            }
+            string mess = "Следующие переменные не определены: ";
+            bool val = true;
+            foreach (var i in allPer)
+            {
+                if (spPer.FindIndex(x => x == i) == -1)
+                {
+                    mess += (i + ",");
+                    val = false;
+                }
+            }
+
+            if (!val)
+            {
+                mess = mess.Remove(mess.Length - 1);
+                return (null, mess);
+            }
+
+            return (spisok, string.Empty);
+        }
+
+        private static void Magazine(List<string> text)
+        {
+            List<string> magazine = new List<string>();
+            magazine.Add("h0");
+            magazine.Add(text[0]);
+            if (!magazine[1].Equals("VAR"))
+            {
+                Console.Write("Hет объявления переменных!\n");
+                return;
+            }
+            
+
+
         }
     }
 }
