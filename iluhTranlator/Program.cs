@@ -41,7 +41,11 @@ namespace translatorKurs
                 Console.WriteLine(e.Message);
             }
         }
-
+        /// <summary>
+        /// Разбивает поток чтения на лексемы
+        /// </summary>
+        /// <param name="potokChteniya">поток чтения файла</param>
+        /// <returns>список найденных лексем</returns>
         private static (List<string>, string) Analiz(StreamReader potokChteniya)
         {
             var lex = new List<string>();
@@ -157,7 +161,7 @@ namespace translatorKurs
                                     }
                                 }
                             }
-                            else if (symbol != ' ' && symbol != '\n' && symbol != '\r' && symbol != '\t')
+                            else if (symbol != ' ' && symbol != '\n' && symbol != '\r' && symbol != '\t' && symbol != '1' && symbol != '0')
                             {
                                 return (null, $"'{symbol}' - неверный символ.");
                             }
@@ -423,19 +427,179 @@ namespace translatorKurs
 
             return (spisok, string.Empty);
         }
+        /// <summary>
+        /// Определяет является ли слово идентификатором
+        /// </summary>
+        /// <param name="value">Слово</param>
+        /// <returns>1 - да; 0 - нет</returns>
+        private static bool IsIdent(string value)
+        {
+            if (!value.Equals(value.ToUpper()))
+                return true;
+            else
+            {
+                if (Proverka(value))
+                    return false;
+                else
+                {
+                    char[] vs = value.ToCharArray();
+                    if (vs.Length != 1)
+                        return true;
+                    else
+                        return false;
+                }
+            }
+        }
+        /// <summary>
+        /// Определяет является ли слово идентификатором
+        /// </summary>
+        /// <param name="val">Слово</param>
+        /// <param name="spisok_identov">Список идентификаторов</param>
+        /// <returns>1 - да; 0 - нет</returns>
+        private static bool IsIdent(string val, List<string> spisok_identov)
+        {
+            if (spisok_identov.FindIndex(x => x == val) != -1)
+                return true;
+            else if (IsConstant(val))
+                return true;
+            else
+                return false;
+        }
+        /// <summary>
+        /// Определяет является ли слово константой
+        /// </summary>
+        /// <param name="value">слово</param>
+        /// <returns>1 - да; 0 - нет</returns>
+        private static bool IsConstant(string value)
+        {
+            if (value.Equals("0"))
+                return true;
+            else if (value.Equals("1"))
+                return true;
+            else
+                return false;
+        }
+
+        private static bool VJ(List<string> idents, List<string> text, ref int value)
+        {
+            int index = value;
+            List<string> binOpetors = new List<string>() { ".AND.", ".OR.", ".EQU." };
+
+            if (IsIdent(text[index], idents) && text[index + 1].Equals(";"))
+            {
+                index++;
+                value = index;
+                return true;
+            }
+
+            if (IsIdent(text[index], idents) && binOpetors.Find(it => it == text[index + 1]) != null && IsIdent(text[index + 2], idents))
+            {
+                index += 2;
+                value = index;
+                return true;
+            }
+
+            if (text[index].Equals("("))
+            {
+                index++;
+                if (VJ(idents, text, ref index))
+                {
+                    if (binOpetors.Find(x => x == text[index + 2]) != null && IsIdent(text[index + 3], idents))
+                    {
+                        value = index;
+                        return true;
+                    }else if (binOpetors.Find(x => x == text[index + 2]) != null && text[index + 3].Equals("("))
+                    {
+                        index += 4;
+                        value = index;
+                        return VJ(idents, text, ref index);
+                        
+                    }
+                }
+                
+            }
+            if (IsIdent(text[index], idents) && binOpetors.Find(it => it == text[index + 1]) != null && text[index + 2].Equals("("))
+            {
+                index += 3;
+                return VJ(idents, text, ref index);
+            }
+            value = index;
+            return false;
+        }
+
+        private static bool Assignment(List<string> buffer, List<string> idents, List<string> text, int index)
+        {
+            List<string> IOoperators = new List<string>() { "READ", "WRITE" };
+
+            if (IOoperators.FindIndex(item => item == text[index]) != -1)
+            {
+                if (text[index + 1].Equals("(") && IsIdent(text[index + 2], idents) && text[index + 3].Equals(")") && text[index + 4].Equals(";"))
+                {
+                    buffer.Add("A");
+                    index += 5;
+                    return true;
+                }
+            }
+
+            if (idents.FindIndex(it => it == text[index]) != -1)
+            {
+
+            }
+
+
+            return false;
+        }
 
         private static void Magazine(List<string> text)
         {
             List<string> magazine = new List<string>();
+            List<string> idents = new List<string>();
             magazine.Add("h0");
-            magazine.Add(text[0]);
+            int step = 0;
+            magazine.Add(text[step]);
             if (!magazine[1].Equals("VAR"))
             {
                 Console.Write("Hет объявления переменных!\n");
                 return;
             }
-            
 
+            if (text.FindIndex(x => x == ":") == -1)
+            {
+                Console.WriteLine("Синтаксичекая ошибка! Нет ':'");
+                return;
+            }
+            step += 1;
+            while (text[step] != ":")
+            {
+                magazine.Add(text[step]);
+                idents.Add(text[step]);
+                step++;
+            }
+            idents.RemoveAll(item => item == ",");
+
+            if (text[step + 1].Equals("LOGICAL") && text[step + 2].Equals(";") && IsIdent(text[step - 1]))
+            {
+                magazine.Clear();
+                magazine.Add("h0");
+                magazine.Add("Per");
+            }
+            else
+            {
+                Console.WriteLine("Синтаксическая ошибка в присвоении типа переменных!");
+            }
+            step += 3;
+
+            if (text[step].Equals("BEGIN"))
+            {
+                magazine.Add(text[step]);
+            }
+            else
+            {
+                Console.WriteLine("Синтаксическая ошибка! Отсутсвует ключевое слово BEGIN!");
+            }
+            step++;
+            VJ(idents, text, ref step);
+            //Assignment(magazine, idents, text, step);
 
         }
     }
