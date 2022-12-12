@@ -148,6 +148,14 @@ namespace translatorKurs
                                         return (null, "Слишком много символа - ';'");
                                     }
                                 }
+                                if (lex.Last().Equals("END_IF"))
+                                {
+                                    //lastOperator = "BEGIN";
+                                    lex[lex.Count - 3] = null;
+                                    lex[lex.Count - 2] = null;
+                                    lex.RemoveAll(x => x == null);
+                                    break;
+                                }
                                 if (symbol == '.')
                                 {
                                     colTochBegin++;
@@ -185,6 +193,7 @@ namespace translatorKurs
                                 if (lex.Last().Equals("END"))
                                 {
                                     lexBuffer = lex.Last() + "_";
+                                    lastOperator = "BEGIN";
                                     break;
                                 }
                                 else
@@ -192,14 +201,14 @@ namespace translatorKurs
                                     return (null, "Ошибка синтаксиса.");
                                 }
                             }
-                            if (lex.Last().Equals("END_IF"))
-                            {
-                                lastOperator = "BEGIN";
-                                lex[lex.Count - 3] = null;
-                                lex[lex.Count - 2] = null;
-                                lex.RemoveAll(x => x == null);
-                                break;
-                            }
+                            //if (lex.Last().Equals("END_IF"))
+                            //{
+                            //    lastOperator = "BEGIN";
+                            //    lex[lex.Count - 3] = null;
+                            //    lex[lex.Count - 2] = null;
+                            //    lex.RemoveAll(x => x == null);
+                            //    break;
+                            //}
                             if (!lex.Last().Equals("END"))
                             {
                                 return (null, $"Ошибка синтаксиса.");
@@ -236,6 +245,10 @@ namespace translatorKurs
             if (ifExist != endIfExist)
             {
                 return (null, "Один из блоков IF не закрыт.");
+            }
+            if (ifExist != thenExist)
+            {
+                return (null, "Для IF не хватает THEN");
             }
             Obiedinenie(lex);
             return (lex, string.Empty);
@@ -418,7 +431,6 @@ namespace translatorKurs
                     val = false;
                 }
             }
-
             if (!val)
             {
                 mess = mess.Remove(mess.Length - 1);
@@ -426,6 +438,48 @@ namespace translatorKurs
             }
 
             return (spisok, string.Empty);
+        }
+        /// <summary>
+        /// Проверяет инициализированы переменные прежде чем их использовать в операциях
+        /// </summary>
+        /// <param name="idents">идентификаторы</param>
+        /// <param name="text">исходный текст</param>
+        /// <returns>1-да; 0-нет</returns>
+        private static bool Proverka_Inic(List<string> idents, List<string> text)
+        {
+            List<string> variable = new List<string>();
+            List<string> other = new List<string>() { ".AND.", ".OR.", ".EQU.", "THEN", "IF", "ELSE", "END_IF", ")", ";" };
+            foreach (var i in idents)
+            {
+                for (int j = 0; j < text.Count; j++)
+                {
+                    if (i.Equals(text[j]))
+                        variable.Add(text[j] + text[j + 1]);
+                }
+            }
+            foreach(var i in idents)
+            {
+                variable.RemoveAll(x => x == i + ",");
+            }
+            foreach(var i in idents)
+            {
+                int index_f = variable.FindIndex(x => x == i + "=");
+                int index_s = 0;
+                foreach(var j in other)
+                {
+                    index_s = variable.FindIndex(x => x == i + j);
+                    if (index_s != -1)
+                        break;
+                }
+                if(index_s != -1)
+                {
+                    if (index_f > index_s || index_f == -1)
+                    {
+                        return false;
+                    }
+                }                
+            }
+            return true;
         }
         /// <summary>
         /// Определяет является ли слово идентификатором
@@ -479,7 +533,13 @@ namespace translatorKurs
             else
                 return false;
         }
-
+        /// <summary>
+        /// Определяет является ли строка выражением
+        /// </summary>
+        /// <param name="idents">идентификаторы</param>
+        /// <param name="text">исходный текст</param>
+        /// <param name="value">место, где начинается проверка</param>
+        /// <returns></returns>
         private static bool VJ(List<string> idents, List<string> text, ref int value)
         {
             int index = value;
@@ -491,11 +551,15 @@ namespace translatorKurs
                 value = index;
                 return true;
             }
-
-            if (IsIdent(text[index], idents) && binOpetors.Find(it => it == text[index + 1]) != null && IsIdent(text[index + 2], idents))
+            if (text[index].Equals("NOT") && text[index + 1].Equals("("))
             {
                 index += 2;
                 value = index;
+                return VJ(idents, text, ref value);
+            }
+            if (IsIdent(text[index], idents) && binOpetors.Find(it => it == text[index + 1]) != null && IsIdent(text[index + 2], idents))
+            {
+                value = index + 3;
                 return true;
             }
 
@@ -504,52 +568,136 @@ namespace translatorKurs
                 index++;
                 if (VJ(idents, text, ref index))
                 {
-                    if (binOpetors.Find(x => x == text[index + 2]) != null && IsIdent(text[index + 3], idents))
+                    if (binOpetors.Find(x => x == text[index + 1]) != null && IsIdent(text[index + 2], idents))
+                    {
+                        index += 2;
+                        value = index;
+                        return true;
+                    }
+                    else if (binOpetors.Find(x => x == text[index + 1]) != null && text[index + 2].Equals("("))
+                    {
+                        index += 3;
+                        value = index;
+                        return VJ(idents, text, ref value);
+                    }
+                    else if (text[index].Equals(")") && text[index + 1].Equals(";"))
                     {
                         value = index;
                         return true;
-                    }else if (binOpetors.Find(x => x == text[index + 2]) != null && text[index + 3].Equals("("))
+                    }
+                    else if (text[index].Equals(")") && text[index + 1].Equals(")"))
                     {
-                        index += 4;
-                        value = index;
-                        return VJ(idents, text, ref index);
-                        
+                        value = index + 2;
+                        if (binOpetors.Find(x => x == text[index + 2]) != null)
+                        {
+                            value++;
+                            return VJ(idents, text, ref value);
+                        }
+                        if (text[index + 2].Equals(";"))
+                        {
+                            return true;
+                        }
                     }
                 }
-                
             }
             if (IsIdent(text[index], idents) && binOpetors.Find(it => it == text[index + 1]) != null && text[index + 2].Equals("("))
             {
-                index += 3;
-                return VJ(idents, text, ref index);
+                value = index + 3;
+                return VJ(idents, text, ref value);
             }
             value = index;
             return false;
         }
-
-        private static bool Assignment(List<string> buffer, List<string> idents, List<string> text, int index)
+        /// <summary>
+        /// Определяет является ли строка присвоением
+        /// </summary>
+        /// <param name="idents">идентификаторы</param>
+        /// <param name="text">исходный текст</param>
+        /// <param name="step">место, где идет проверка</param>
+        /// <returns></returns>
+        private static bool Assignment(List<string> idents, List<string> text, ref int step)
         {
             List<string> IOoperators = new List<string>() { "READ", "WRITE" };
+            int index = step;
 
+            // A -> r(per); A -> w(per);
             if (IOoperators.FindIndex(item => item == text[index]) != -1)
             {
                 if (text[index + 1].Equals("(") && IsIdent(text[index + 2], idents) && text[index + 3].Equals(")") && text[index + 4].Equals(";"))
                 {
-                    buffer.Add("A");
-                    index += 5;
+                    step = index + 4;
                     return true;
                 }
             }
 
-            if (idents.FindIndex(it => it == text[index]) != -1)
+            // A -> I = Vj;
+            if (idents.FindIndex(it => it == text[index]) != -1 && text[index + 1].Equals("="))
             {
-
+                index += 2;
+                if (VJ(idents, text, ref index))
+                {
+                    if (text[index + 1].Equals(";"))
+                    {
+                        step = index + 1;
+                        return true;
+                    }
+                    else if (text[index].Equals(";"))
+                    {
+                        step = index;
+                        return true;
+                    }
+                    else if (text[index + 1].Equals(")") && text[index + 2].Equals(";"))
+                    {
+                        step = index + 2;
+                        return true;
+                    }
+                    else if (text[index + 1].Equals(")") && text[index + 2].Equals(")") && text[index + 3].Equals(";"))
+                    {
+                        step = index + 3;
+                        return true;
+                    }
+                    else
+                        return false;
+                }
             }
 
-
+            if (text[index].Equals("IF"))
+            {
+                step = index + 1;
+                if (VJ(idents, text, ref step))
+                {
+                    if (text[step].Equals("THEN"))
+                    {
+                        while (!text[step + 1].Equals("ELSE") && !text[step + 1].Equals("END_IF"))
+                        {
+                            step++;
+                            if (!Assignment(idents, text, ref step))
+                                return false;
+                        }
+                        if (text[step + 1].Equals("ELSE"))
+                        {
+                            step++;
+                            while (!text[step + 1].Equals("END_IF"))
+                            {
+                                step++;
+                                if (!Assignment(idents, text, ref step))
+                                    return false;
+                            }
+                        }
+                        if (text[step + 1].Equals("END_IF"))
+                        {
+                            step += 2;
+                            return true;
+                        }
+                    }
+                }
+            }
             return false;
         }
-
+        /// <summary>
+        /// Выполняет работа магазинного автомата
+        /// </summary>
+        /// <param name="text">строка</param>
         private static void Magazine(List<string> text)
         {
             List<string> magazine = new List<string>();
@@ -576,6 +724,11 @@ namespace translatorKurs
                 step++;
             }
             idents.RemoveAll(item => item == ",");
+            if(!Proverka_Inic(idents, text))
+            {
+                Console.WriteLine("Не все переменные инициализированы!");
+                return;
+            }
 
             if (text[step + 1].Equals("LOGICAL") && text[step + 2].Equals(";") && IsIdent(text[step - 1]))
             {
@@ -598,9 +751,30 @@ namespace translatorKurs
                 Console.WriteLine("Синтаксическая ошибка! Отсутсвует ключевое слово BEGIN!");
             }
             step++;
-            VJ(idents, text, ref step);
-            //Assignment(magazine, idents, text, step);
-
+            while (!text[step].Equals("END"))
+            {
+                if (Assignment(idents, text, ref step))
+                {
+                    magazine.Add("A");
+                }
+                else
+                {
+                    Console.WriteLine("Ошибка в присвоении!");
+                    break;
+                }
+                if (text[step].Equals(";"))
+                    step++;
+            }
+            magazine.Add("END");
+            magazine[3] = "Sa";
+            magazine.RemoveAll(x => x == "A");
+            if (magazine[1].Equals("Per") && magazine[2].Equals("BEGIN") && magazine[3].Equals("Sa") && magazine[4].Equals("END"))
+            {
+                magazine.Clear();
+                magazine.Add("Programm");
+            }
+            if (magazine[0].Equals("Programm"))
+                Console.WriteLine("Это программа");
         }
     }
 }
