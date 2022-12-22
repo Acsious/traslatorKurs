@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace translatorKurs
 {
@@ -13,7 +14,7 @@ namespace translatorKurs
         private static string lastOperator = "";
         private static bool varExist = false, beginExist = false, endExist = false, logicalExist = false, tochPosleEnd = false;
 
-        public static void Main()
+        public static async Task Main()
         {
             try
             {
@@ -28,11 +29,17 @@ namespace translatorKurs
                 else
                 {
                     Magazine(choto.Item1);
-                    Console.Write("Найденные лексемы: ");
-                    foreach (var it in choto.Item1)
+                    List<Variable> variables = Translator.TranslateToVar(choto.Item1);
+                    var finCode = Translator.Analyze(variables);
+                    var (compilerResult, msg) = await Compiler.CompileAsync(finCode);
+                    if (compilerResult)
                     {
-                        Console.Write(it + " ");
+                        Console.WriteLine(msg);
+                        return;
                     }
+
+                    var exitCode = await Compiler.RunAsync();
+                    Console.WriteLine($"Программа закончилась с кодом - {exitCode}");
                 }
             }
             catch (Exception e)
@@ -453,31 +460,38 @@ namespace translatorKurs
             {
                 for (int j = 0; j < text.Count; j++)
                 {
+                    if (text[j].Equals("READ") && text[j + 1].Equals("(") && text[j + 2].Equals(i) && text[j + 3].Equals(")"))
+                    {
+                        variable.Add(text[j] + text[j + 1] + text[j + 2] + text[j + 3]);
+                        j += 3;
+                        continue;
+                    }
                     if (i.Equals(text[j]))
                         variable.Add(text[j] + text[j + 1]);
                 }
             }
-            foreach(var i in idents)
+            foreach (var i in idents)
             {
                 variable.RemoveAll(x => x == i + ",");
             }
-            foreach(var i in idents)
+            foreach (var i in idents)
             {
                 int index_f = variable.FindIndex(x => x == i + "=");
                 int index_s = 0;
-                foreach(var j in other)
+                int index_R = variable.FindIndex(x => x == $"READ({i})");
+                foreach (var j in other)
                 {
                     index_s = variable.FindIndex(x => x == i + j);
                     if (index_s != -1)
                         break;
                 }
-                if(index_s != -1)
+                if (index_s != -1)
                 {
-                    if (index_f > index_s || index_f == -1)
+                    if (index_f > index_s || (index_f == -1 && index_R == -1) || index_R > index_s)
                     {
                         return false;
                     }
-                }                
+                }
             }
             return true;
         }
@@ -724,7 +738,7 @@ namespace translatorKurs
                 step++;
             }
             idents.RemoveAll(item => item == ",");
-            if(!Proverka_Inic(idents, text))
+            if (!Proverka_Inic(idents, text))
             {
                 Console.WriteLine("Не все переменные инициализированы!");
                 return;
@@ -776,5 +790,6 @@ namespace translatorKurs
             if (magazine[0].Equals("Programm"))
                 Console.WriteLine("Это программа");
         }
+
     }
 }
