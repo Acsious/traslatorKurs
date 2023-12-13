@@ -82,7 +82,7 @@ namespace translatorKurs
 
                             if (lexeme.lexemeType.Equals(Variable.VariableType.IDENT))
                             {
-                                sourceCSCode.Append($"int {lexeme.name};");
+                                sourceCSCode.Append($"bool {lexeme.name};");
                                 break;
                             }
 
@@ -116,7 +116,8 @@ namespace translatorKurs
                             Zamena(sourceCSCode, it);
 
                             it = stackOfLexemes.Pop();
-                            sourceCSCode.Append($"{it.name}){{");
+                            Zamena(sourceCSCode, it);
+                            sourceCSCode.Append($"){{");
 
 
                             stackOfLexemes.Pop();
@@ -187,6 +188,21 @@ namespace translatorKurs
                         source.Append(" == ");
                         break;
                     }
+                case "NOT":
+                    {
+                        source.Append("!");
+                        break;
+                    }
+                case "1":
+                    {
+                        source.Append("true");
+                        break;
+                    }
+                case "0":
+                    {
+                        source.Append("false");
+                        break;
+                    }
                 default:
                     source.Append(lexeme.name);
                     break;
@@ -197,9 +213,9 @@ namespace translatorKurs
         {
             List<Variable> variables = new List<Variable>();
 
-            List<string> keyword = new List<string>() { "VAR", "LOGICAL", "BEGIN", "END", "WRITE", "READ", "IF", "ELSE", "THEN", "END_IF" };
-            List<string> operators = new List<string>() { ".AND.", ".OR.", ".EQU.", ":", "=", ",", ";", "(", ")", "." };
-            List<string> numbers = new List<string>() { "0", "1" };
+            var keyword = new List<string>() { "VAR", "LOGICAL", "BEGIN", "END", "WRITE", "READ", "IF", "ELSE", "THEN", "END_IF" };
+            var operators = new List<string>() { ".AND.", ".OR.", ".EQU.", ":", "=", ",", ";", "(", ")", "." };
+            var numbers = new List<string>() { "0", "1" };
 
             foreach (var i in lexemes)
             {

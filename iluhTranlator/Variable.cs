@@ -1,20 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace translatorKurs
+﻿namespace translatorKurs
 {
     class Variable
     {
-		public enum VariableType : byte { KEYWORD, OPERATOR, IDENT, NUMBER }
+        public enum VariableType : byte { KEYWORD, OPERATOR, IDENT, NUMBER }
 
-		public readonly VariableType lexemeType;
-		public readonly string name;
+        public readonly VariableType lexemeType;
+        public readonly string name;
 
-		public Variable(string stroka, VariableType lexemeType)
-		{
-			this.name = stroka;
-			this.lexemeType = lexemeType;
-		}
-	}
+        public Variable(string stroka, VariableType lexemeType)
+        {
+            name = stroka;
+            this.lexemeType = lexemeType;
+        }
+    }
 }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace translatorKurs
 {
-    class LeksicheskiyAnalizator
+    internal class LeksicheskiyAnalizator
     {
         private static readonly int maxDlinaIdenta = 9;
         private static int colDvoit = 0, colTochSZap = 0, colTochBegin = 0,
@@ -18,9 +18,11 @@ namespace translatorKurs
         {
             try
             {
-                var choto = Analiz(new StreamReader("TestFile.txt"));
+                (List<string>, string) choto = Analiz(new StreamReader("TestFile.txt"));
                 if (choto.Item1 != null)
+                {
                     choto = Proverka_Per(choto.Item1);
+                }
 
                 if (choto.Item1 == null)
                 {
@@ -30,15 +32,15 @@ namespace translatorKurs
                 {
                     Magazine(choto.Item1);
                     List<Variable> variables = Translator.TranslateToVar(choto.Item1);
-                    var finCode = Translator.Analyze(variables);
-                    var (compilerResult, msg) = await Compiler.CompileAsync(finCode);
+                    string finCode = Translator.Analyze(variables);
+                    (bool compilerResult, string msg) = await Compiler.CompileAsync(finCode);
                     if (compilerResult)
                     {
                         Console.WriteLine(msg);
                         return;
                     }
 
-                    var exitCode = await Compiler.RunAsync();
+                    int exitCode = await Compiler.RunAsync();
                     Console.WriteLine($"Программа закончилась с кодом - {exitCode}");
                 }
             }
@@ -56,11 +58,11 @@ namespace translatorKurs
         private static (List<string>, string) Analiz(StreamReader potokChteniya)
         {
             var lex = new List<string>();
-            var lexBuffer = string.Empty;
+            string lexBuffer = string.Empty;
 
             while (!potokChteniya.EndOfStream)
             {
-                var symbol = (char)potokChteniya.Read();
+                char symbol = (char)potokChteniya.Read();
                 if (char.IsLetter(symbol))
                 {
                     lexBuffer += symbol;
@@ -157,10 +159,9 @@ namespace translatorKurs
                                 }
                                 if (lex.Last().Equals("END_IF"))
                                 {
-                                    //lastOperator = "BEGIN";
-                                    lex[lex.Count - 3] = null;
-                                    lex[lex.Count - 2] = null;
-                                    lex.RemoveAll(x => x == null);
+                                    lex[^3] = null;
+                                    lex[^2] = null;
+                                    _ = lex.RemoveAll(x => x == null);
                                     break;
                                 }
                                 if (symbol == '.')
@@ -170,7 +171,7 @@ namespace translatorKurs
                                     {
                                         return (null, "Слишком много символа - '.'");
                                     }
-                                    if ((colTochBegin % 2 == 0) && !(lex[lex.Count - 2].Equals(".") && (lex.Last().Equals("NOT") || lex.Last().Equals("AND") || lex.Last().Equals("OR") || lex.Last().Equals("EQU"))))
+                                    if ((colTochBegin % 2 == 0) && !(lex[^2].Equals(".") && (lex.Last().Equals("NOT") || lex.Last().Equals("AND") || lex.Last().Equals("OR") || lex.Last().Equals("EQU"))))
                                     {
                                         return (null, "Ошибка синтаксиса");
                                     }
@@ -208,14 +209,6 @@ namespace translatorKurs
                                     return (null, "Ошибка синтаксиса.");
                                 }
                             }
-                            //if (lex.Last().Equals("END_IF"))
-                            //{
-                            //    lastOperator = "BEGIN";
-                            //    lex[lex.Count - 3] = null;
-                            //    lex[lex.Count - 2] = null;
-                            //    lex.RemoveAll(x => x == null);
-                            //    break;
-                            //}
                             if (!lex.Last().Equals("END"))
                             {
                                 return (null, $"Ошибка синтаксиса.");
@@ -226,19 +219,6 @@ namespace translatorKurs
                     {
                         lex.Add(symbol.ToString());
                     }
-                    #region
-                    //временный кусок для копипасты
-                    //
-                    //var operators = new List<string> { ":", ";", ".", ",", "(", ")", "=", ".NOT.", ".AND.", ".OR.", ".EQU." };
-                    //if (operators.Exists(op => op.Equals(symbol.ToString())))
-                    //{
-                    //    lex.Add(symbol.ToString());
-                    //}
-                    //else if (symbol != ' ' && symbol != '\n' && symbol != '\r' && symbol != '\t')
-                    //{
-                    //    return (null, $"'{symbol}' - неверный символ.");
-                    //}
-                    #endregion
                 }
             }
             if (colOtSkob != colZakSkob)
@@ -268,7 +248,7 @@ namespace translatorKurs
         /// <param name="spis">Список лексем</param>
         private static void Obiedinenie(List<string> spis)
         {
-            for (var i = spis.IndexOf("BEGIN"); i < spis.IndexOf("END"); i++)
+            for (int i = spis.IndexOf("BEGIN"); i < spis.IndexOf("END"); i++)
             {
                 if (spis[i].Equals(".") && spis[i + 2].Equals(".") && (spis[i + 1].Equals("NOT") || spis[i + 1].Equals("AND") || spis[i + 1].Equals("EQU") || spis[i + 1].Equals("OR")))
                 {
@@ -278,7 +258,7 @@ namespace translatorKurs
                     i += 2;
                 }
             }
-            spis.RemoveAll(x => x is null);
+            _ = spis.RemoveAll(x => x is null);
         }
 
         /// <summary>
@@ -402,13 +382,13 @@ namespace translatorKurs
         /// <returns></returns>
         private static (List<string>, string) Proverka_Per(List<string> spisok)
         {
-            List<string> spPer = new List<string>();
-            List<string> allPer = new List<string>();
+            var spPer = new List<string>();
+            var allPer = new List<string>();
             int index = 0;
 
             for (int i = 0; i < spisok.Count; i++)
             {
-                var iter = spisok[i];
+                string iter = spisok[i];
 
                 if (iter.Equals(":"))
                 {
@@ -416,25 +396,32 @@ namespace translatorKurs
                     break;
                 }
                 if (!iter.Equals(iter.ToUpper()))
+                {
                     spPer.Add(iter);
+                }
             }
 
             for (int i = index; i < spisok.Count; i++)
             {
-                var iter = spisok[i];
+                string iter = spisok[i];
 
                 if (iter.Equals("END"))
+                {
                     break;
+                }
+
                 if (!iter.Equals(iter.ToUpper()))
+                {
                     allPer.Add(iter);
+                }
             }
             string mess = "Следующие переменные не определены: ";
             bool val = true;
-            foreach (var i in allPer)
+            foreach (string i in allPer)
             {
                 if (spPer.FindIndex(x => x == i) == -1)
                 {
-                    mess += (i + ",");
+                    mess += i + ",";
                     val = false;
                 }
             }
@@ -454,9 +441,9 @@ namespace translatorKurs
         /// <returns>1-да; 0-нет</returns>
         private static bool Proverka_Inic(List<string> idents, List<string> text)
         {
-            List<string> variable = new List<string>();
-            List<string> other = new List<string>() { ".AND.", ".OR.", ".EQU.", "THEN", "IF", "ELSE", "END_IF", ")", ";" };
-            foreach (var i in idents)
+            var variable = new List<string>();
+            var other = new List<string>() { ".AND.", ".OR.", ".EQU.", "THEN", "IF", "ELSE", "END_IF", ")", ";" };
+            foreach (string i in idents)
             {
                 for (int j = 0; j < text.Count; j++)
                 {
@@ -467,23 +454,27 @@ namespace translatorKurs
                         continue;
                     }
                     if (i.Equals(text[j]))
+                    {
                         variable.Add(text[j] + text[j + 1]);
+                    }
                 }
             }
-            foreach (var i in idents)
+            foreach (string i in idents)
             {
-                variable.RemoveAll(x => x == i + ",");
+                _ = variable.RemoveAll(x => x == i + ",");
             }
-            foreach (var i in idents)
+            foreach (string i in idents)
             {
                 int index_f = variable.FindIndex(x => x == i + "=");
                 int index_s = 0;
                 int index_R = variable.FindIndex(x => x == $"READ({i})");
-                foreach (var j in other)
+                foreach (string j in other)
                 {
                     index_s = variable.FindIndex(x => x == i + j);
                     if (index_s != -1)
+                    {
                         break;
+                    }
                 }
                 if (index_s != -1)
                 {
@@ -503,18 +494,19 @@ namespace translatorKurs
         private static bool IsIdent(string value)
         {
             if (!value.Equals(value.ToUpper()))
+            {
                 return true;
+            }
             else
             {
                 if (Proverka(value))
+                {
                     return false;
+                }
                 else
                 {
                     char[] vs = value.ToCharArray();
-                    if (vs.Length != 1)
-                        return true;
-                    else
-                        return false;
+                    return vs.Length != 1;
                 }
             }
         }
@@ -527,11 +519,13 @@ namespace translatorKurs
         private static bool IsIdent(string val, List<string> spisok_identov)
         {
             if (spisok_identov.FindIndex(x => x == val) != -1)
+            {
                 return true;
-            else if (IsConstant(val))
-                return true;
+            }
             else
-                return false;
+            {
+                return IsConstant(val);
+            }
         }
         /// <summary>
         /// Определяет является ли слово константой
@@ -541,11 +535,13 @@ namespace translatorKurs
         private static bool IsConstant(string value)
         {
             if (value.Equals("0"))
+            {
                 return true;
-            else if (value.Equals("1"))
-                return true;
+            }
             else
-                return false;
+            {
+                return value.Equals("1");
+            }
         }
         /// <summary>
         /// Определяет является ли строка выражением
@@ -556,8 +552,8 @@ namespace translatorKurs
         /// <returns></returns>
         private static bool VJ(List<string> idents, List<string> text, ref int value)
         {
-            int index = value;
-            List<string> binOpetors = new List<string>() { ".AND.", ".OR.", ".EQU." };
+            var index = value;
+            var binOpetors = new List<string>() { ".AND.", ".OR.", ".EQU." };
 
             if (IsIdent(text[index], idents) && text[index + 1].Equals(";"))
             {
@@ -631,10 +627,9 @@ namespace translatorKurs
         /// <returns></returns>
         private static bool Assignment(List<string> idents, List<string> text, ref int step)
         {
-            List<string> IOoperators = new List<string>() { "READ", "WRITE" };
+            var IOoperators = new List<string>() { "READ", "WRITE" };
             int index = step;
 
-            // A -> r(per); A -> w(per);
             if (IOoperators.FindIndex(item => item == text[index]) != -1)
             {
                 if (text[index + 1].Equals("(") && IsIdent(text[index + 2], idents) && text[index + 3].Equals(")") && text[index + 4].Equals(";"))
@@ -644,7 +639,6 @@ namespace translatorKurs
                 }
             }
 
-            // A -> I = Vj;
             if (idents.FindIndex(it => it == text[index]) != -1 && text[index + 1].Equals("="))
             {
                 index += 2;
@@ -671,7 +665,9 @@ namespace translatorKurs
                         return true;
                     }
                     else
+                    {
                         return false;
+                    }
                 }
             }
 
@@ -686,7 +682,9 @@ namespace translatorKurs
                         {
                             step++;
                             if (!Assignment(idents, text, ref step))
+                            {
                                 return false;
+                            }
                         }
                         if (text[step + 1].Equals("ELSE"))
                         {
@@ -695,7 +693,9 @@ namespace translatorKurs
                             {
                                 step++;
                                 if (!Assignment(idents, text, ref step))
+                                {
                                     return false;
+                                }
                             }
                         }
                         if (text[step + 1].Equals("END_IF"))
@@ -714,8 +714,8 @@ namespace translatorKurs
         /// <param name="text">строка</param>
         private static void Magazine(List<string> text)
         {
-            List<string> magazine = new List<string>();
-            List<string> idents = new List<string>();
+            var magazine = new List<string>();
+            var idents = new List<string>();
             magazine.Add("h0");
             int step = 0;
             magazine.Add(text[step]);
@@ -737,7 +737,7 @@ namespace translatorKurs
                 idents.Add(text[step]);
                 step++;
             }
-            idents.RemoveAll(item => item == ",");
+            _ = idents.RemoveAll(item => item == ",");
             if (!Proverka_Inic(idents, text))
             {
                 Console.WriteLine("Не все переменные инициализированы!");
@@ -777,19 +777,22 @@ namespace translatorKurs
                     break;
                 }
                 if (text[step].Equals(";"))
+                {
                     step++;
+                }
             }
             magazine.Add("END");
             magazine[3] = "Sa";
-            magazine.RemoveAll(x => x == "A");
+            _ = magazine.RemoveAll(x => x == "A");
             if (magazine[1].Equals("Per") && magazine[2].Equals("BEGIN") && magazine[3].Equals("Sa") && magazine[4].Equals("END"))
             {
                 magazine.Clear();
                 magazine.Add("Programm");
             }
             if (magazine[0].Equals("Programm"))
+            {
                 Console.WriteLine("Это программа");
+            }
         }
-
     }
 }
